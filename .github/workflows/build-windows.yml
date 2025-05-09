@@ -96,7 +96,9 @@ jobs:
       - name: Zip
         run: |
           pwd
-          zip -r mood_diary.zip artifacts/windows/*
+          cd artifacts/windows
+          zip -r mood_diary.zip ./*
+          mv mood_diary.zip ../../
                 
       - name: Get release asset ID
         id: get_asset_id
