@@ -81,7 +81,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     name: Publish Release
-    needs: [ mood_diary ]
+    needs: [ build-windows ]
 
     steps:
       - name: Checkout Repository
