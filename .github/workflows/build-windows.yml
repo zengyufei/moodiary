@@ -63,11 +63,6 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.flutter-version }}
-          cache-key: flutter-version-${{ env.flutter-version }}-${{ hashFiles('**/pubspec.lock') }}
-          cache-path: |
-            ${{ env.PUB_CACHE }}
-            .dart_tool
-            build
 
       - name: Install Dependencies
         run: flutter pub get
