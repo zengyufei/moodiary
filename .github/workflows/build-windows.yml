@@ -93,42 +93,36 @@ jobs:
           name: windows-exe
           path: artifacts/windows
 
-      - name: Get Latest Tag
-        id: latest_tag
-        uses: actions-ecosystem/action-get-latest-tag@v1.6.0
-        with:
-          fetch-all-tags: true
-          sort-tags: true
-
-      - name: Extract Tag Version
-        id: extract_tag_version
+      - name: Zip
         run: |
-          tag="${{ steps.latest_tag.outputs.tag }}"
-          version="${tag#v}"
-          echo "VERSION=$version" >> $GITHUB_ENV
-
-      - name: Rename Artifacts
+          pwd
+          zip -r mood_diary.zip artifacts/windows/*
+                
+      - name: Get release asset ID
+        id: get_asset_id
         run: |
-          mkdir -p renamed-artifacts
-          mv artifacts/windows renamed-artifacts/moodiary-${{ env.VERSION }}
+          TAG_NAME=release
+          ASSET_NAME="mood_diary.zip"
+          ASSET_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG_NAME" | \
+            jq -r ".assets[] | select(.name == \"$ASSET_NAME\") | .id")
+          
+          echo "ASSET_ID=$ASSET_ID" >> $GITHUB_ENV
+          echo "Found asset ID: $ASSET_ID"
 
-      - name: Generate Release Notes
-        id: release_notes
-        uses: release-drafter/release-drafter@v5
+      - name: Delete old release asset
+        if: env.ASSET_ID != ''
+        run: |
+          echo "Deleting asset with ID: $ASSET_ID"
+          curl -X DELETE \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/assets/$ASSET_ID"
+            
+      - name: Upload to Release
+        if: success()
+        uses: svenstaro/upload-release-action@v2
         with:
-          config-name: release-drafter.yml
-          tag: v${{ env.VERSION }}
-          publish: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create Release
-        uses: ncipollo/release-action@v1
-        with:
-          artifacts: renamed-artifacts/*
-          tag: v${{ env.VERSION }}
-          name: v${{ env.VERSION }}
-          body: ${{ steps.release_notes.outputs.body }}
-          draft: true
-          prerelease: false
-          token: ${{ secrets.GITHUB_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: mood_diary.zip
+          asset_name: mood_diary.zip
+          tag: release
