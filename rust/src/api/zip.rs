@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use flutter_rust_bridge::frb;
 use std::fs::File;
 use std::io::{Read, Write};
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use walkdir::WalkDir;
@@ -27,9 +28,13 @@ impl Zip {
         let file = File::create(&file_path)
             .with_context(|| format!("Failed to create ZIP file at {}", file_path))?;
 
-        let options = SimpleFileOptions::default()
-            .compression_method(CompressionMethod::Zstd)
-            .unix_permissions(0o755);
+        let mut options = SimpleFileOptions::default()
+            .compression_method(CompressionMethod::Zstd);
+
+        #[cfg(unix)]
+        {
+            options = options.unix_permissions(0o755);
+        }
 
         Ok(Self {
             writer: Some(ZipWriter::new(file)),
