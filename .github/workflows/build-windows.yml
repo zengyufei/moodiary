@@ -73,7 +73,7 @@ jobs:
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mood_diary
+          name: windows-exe
           path: build/windows/x64/runner/Release
 
           
@@ -90,8 +90,8 @@ jobs:
       - name: Download APK Artifact
         uses: actions/download-artifact@v4
         with:
-          name: android-apk
-          path: artifacts/android
+          name: windows-exe
+          path: artifacts/windows
 
       - name: Get Latest Tag
         id: latest_tag
@@ -110,7 +110,7 @@ jobs:
       - name: Rename Artifacts
         run: |
           mkdir -p renamed-artifacts
-          mv artifacts/android/app-release.apk renamed-artifacts/moodiary-${{ env.VERSION }}-android-arm64.apk
+          mv artifacts/windows renamed-artifacts/moodiary-${{ env.VERSION }}
 
       - name: Generate Release Notes
         id: release_notes
