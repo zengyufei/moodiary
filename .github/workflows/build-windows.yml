@@ -51,5 +51,5 @@ jobs:
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-exe
-          path: build/windows/runner/Release/
+          name: mood_diary.exe
+          path: build/windows/x64/runner/Release/mood_diary.exe
