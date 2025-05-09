@@ -1,78 +1,46 @@
-name: Build & Release
+name: Build Windows
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-windows: # Changed job name to be more descriptive
-    runs-on: windows-latest # Changed from ubuntu-latest to windows-latest
-    name: Build Windows
+  build-windows:
+    runs-on: windows-latest
+    name: Build Windows Executable
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Note: Java setup is typically not needed for Windows builds unless your app specifically uses Java components.
-      # However, keeping it won't hurt if you also build Android/other platforms in the same repo.
-      - name: Set Up Java
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      # Note: jq is a Linux/Unix tool. It might not be available or needed on Windows runners.
-      # You might need a Windows equivalent or a different approach to read .fvmrc if jq is essential.
-      # For now, I'll keep it but be aware it might fail or need adjustment on Windows.
-      - name: Install jq # This step might need adjustment for Windows
-        run: choco install jq -y # Using Chocolatey for package installation on Windows
+      - name: Install jq
+        run: choco install jq
 
       - name: Read Flutter Version
         id: flutter_version
-        # This script is written for bash (Linux/macOS). It needs to be adapted for PowerShell or cmd on Windows.
-        # Example for PowerShell:
+        shell: bash
         run: |
-          if (Test-Path .fvmrc) {
-            $flutterVersion = (Get-Content .fvmrc | ConvertFrom-Json).flutter
-            Write-Host "Flutter version detected: $flutterVersion"
-            echo "flutter-version=$flutterVersion" >> $env:GITHUB_ENV
-          } else {
-            Write-Host ".fvmrc not found. Defaulting to latest Flutter version."
-            echo "flutter-version=stable" >> $env:GITHUB_ENV
-          }
-
+          if [ -f .fvmrc ]; then
+            FLUTTER_VERSION=$(cat .fvmrc | jq -r '.flutter')
+            echo "Flutter version detected: $FLUTTER_VERSION"
+            echo "flutter-version=$FLUTTER_VERSION" >> $GITHUB_ENV
+          else
+            echo ".fvmrc not found. Defaulting to latest Flutter version."
+            echo "flutter-version=stable" >> $GITHUB_ENV
+          fi
 
       - name: Set Up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.flutter-version }}
-          # Add channel if needed, e.g., channel: 'stable'
-
-      # Note: Rust setup might need adjustment for Windows runners depending on the actions-rs/toolchain behavior on Windows.
-      - name: Set Up Rust # This step might need adjustment for Windows
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          override: true
-          # Add target for Windows if needed, e.g., target: 'x86_64-pc-windows-msvc'
-
 
       - name: Install Dependencies
         run: flutter pub get
 
       - name: Build Windows
-        run: flutter build windows --release --obfuscate --split-debug-info=splitMap
+        run: flutter build windows --release
 
-      - name: look build folder
-        run: |
-          Get-Location # Equivalent of pwd in PowerShell
-          cd build
-          Get-ChildItem # Equivalent of ls in PowerShell
-          cd windows # Windows build output is typically in build/windows
-          Get-ChildItem
-          cd runner # The executable is usually in build/windows/runner
-          Get-ChildItem
-          # The final executable is usually in build/windows/runner/Release/your_app_name.exe
-          cd Release
-          Get-ChildItem
-
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: build/windows/runner/Release/
